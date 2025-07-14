@@ -6,15 +6,26 @@
  int data[5];
 int cflag=0,q;
 
-int PID_UPdate(track *track1)
- {
-	track1->error =track1->error;
-	track1->integral +=track1->error;
-	track1->output =track1->kp*track1->error+track1->ki*track1->integral+track1->kd*(track1->error - track1->last_error);
-	track1->last_error =track1->error;
-	return track1->output;
- }
+float PID_UPdate(track *track1,float error,float time)
+{
+ track1->error = error;
+ track1->time = time;
+ track1->integral +=track1->error * track1->time;
 
+ if(track1->integral > 500) 
+ track1->integral = 500;
+ else if(track1->integral < -500)
+ track1->integral = -500;
+
+ track1->output =track1->kp*track1->error+track1->ki*track1->integral+track1->kd*(track1->error - track1->last_error);
+ track1->last_error =track1->error;
+
+	 if(track1->output > 999) 
+	 track1->output = 999;
+	 else if(track1->output < -999)
+	 track1->output = -999;
+	 return track1->output;
+}
 void PId_Init_tack(track *track2,float kp,float ki,float kd)
 {
     track2->kp =kp;

@@ -13,6 +13,7 @@ typedef struct {
 float kp,ki,kd;
 int error,last_error;
 int integral,output;
+float time;
 
 }track;
 
@@ -20,6 +21,6 @@ extern int data[5],cflag,q,error;
  void updata();
  void xunji();
   void mode_chack();
-   int PID_UPdate();
+float PID_UPdate(track *track1,float error,float time);
     int Get_Error() ;
 #endif
