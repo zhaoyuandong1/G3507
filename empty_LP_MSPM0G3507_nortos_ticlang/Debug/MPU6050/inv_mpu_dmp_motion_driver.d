@@ -2,7 +2,7 @@
 
 MPU6050/inv_mpu_dmp_motion_driver.o: \
  ../MPU6050/inv_mpu_dmp_motion_driver.c ../MPU6050/inv_mpu.h \
- F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h \
+ D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h \
  ti_msp_dl_config.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/msp/msp.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/DeviceFamily.h \
@@ -80,7 +80,7 @@ MPU6050/inv_mpu_dmp_motion_driver.o: \
  ../MPU6050/inv_mpu_dmp_motion_driver.h ../MPU6050/dmpKey.h \
  ../MPU6050/dmpmap.h
 ../MPU6050/inv_mpu.h:
-F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h:
+D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h:
 ti_msp_dl_config.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/msp/msp.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/DeviceFamily.h:

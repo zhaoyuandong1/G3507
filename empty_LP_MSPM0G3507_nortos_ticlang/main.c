@@ -59,7 +59,7 @@ int main(void)
     
     encoder_init();
 
-    MPU6050_Init();
+    // MPU6050_Init();
     uart_Init();
        lc_printf("start\r\n");
     while(mpu_dmp_init())
