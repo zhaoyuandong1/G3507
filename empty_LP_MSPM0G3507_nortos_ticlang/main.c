@@ -55,9 +55,9 @@ int main(void)
 {
 
     SYSCFG_DL_init();
-    OLED_Init();
+    // OLED_Init();
     
-    encoder_init();
+    // encoder_init();
 
     // MPU6050_Init();
     uart_Init();
