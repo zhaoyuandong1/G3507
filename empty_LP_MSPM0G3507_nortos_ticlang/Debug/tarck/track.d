@@ -75,8 +75,8 @@ tarck/track.o: ../tarck/track.c ../tarck/track.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/dl_wwdt.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_interrupt.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_systick.h \
- F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MOTOR/motor.h \
- F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h
+ D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/MOTOR/motor.h \
+ D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h
 ../tarck/track.h:
 ti_msp_dl_config.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/msp/msp.h:
@@ -152,5 +152,5 @@ C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/dl_vref.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/dl_wwdt.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_interrupt.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_systick.h:
-F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MOTOR/motor.h:
-F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h:
+D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/MOTOR/motor.h:
+D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h:
