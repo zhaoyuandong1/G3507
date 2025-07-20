@@ -127,11 +127,11 @@ SUBDIRS := \
 . \
 Board \
 Delay \
+Encoder \
 Hardware \
+JY61P \
 MOTOR \
-MPU6050 \
 OLED \
-PID \
 UART \
-tarck \
+control \
 

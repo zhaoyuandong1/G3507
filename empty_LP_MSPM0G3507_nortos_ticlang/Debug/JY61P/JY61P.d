@@ -1,7 +1,7 @@
 # FIXED
 
-MPU6050/inv_mpu.o: ../MPU6050/inv_mpu.c ../MPU6050/inv_mpu.h \
- D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h \
+JY61P/JY61P.o: ../JY61P/JY61P.c \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/main.h \
  ti_msp_dl_config.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/msp/msp.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/DeviceFamily.h \
@@ -76,9 +76,22 @@ MPU6050/inv_mpu.o: ../MPU6050/inv_mpu.c ../MPU6050/inv_mpu.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/dl_wwdt.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_interrupt.h \
  C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_systick.h \
- ../MPU6050/inv_mpu_dmp_motion_driver.h ../MPU6050/mpu6050.h
-../MPU6050/inv_mpu.h:
-D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h:
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MOTOR/motor.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/tarck/track.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/OLED/oled.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Delay/Delay.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/PID/pid.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MPU6050/mpu6050.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MPU6050/inv_mpu.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/PID/PID1.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/UART/uart.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Hardware/hardware.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/JY61P/JY61P.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/control/control.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Hardware/sersor.h \
+ F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/JY61P/bsp_gyro.h
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/main.h:
 ti_msp_dl_config.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/msp/msp.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/devices/DeviceFamily.h:
@@ -153,5 +166,18 @@ C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/dl_vref.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/dl_wwdt.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_interrupt.h:
 C:/ti/mspm0_sdk_2_05_01_00/source/ti/driverlib/m0p/dl_systick.h:
-../MPU6050/inv_mpu_dmp_motion_driver.h:
-../MPU6050/mpu6050.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Board/board.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MOTOR/motor.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/tarck/track.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/OLED/oled.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Delay/Delay.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/PID/pid.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MPU6050/mpu6050.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/MPU6050/inv_mpu.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/PID/PID1.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/UART/uart.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Hardware/hardware.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/JY61P/JY61P.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/control/control.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Hardware/sersor.h:
+F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/JY61P/bsp_gyro.h:

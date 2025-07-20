@@ -3,9 +3,10 @@
 #include "stdio.h"
 // #include <cstdint>
 
- int data[5];
+ int data[5],error;
 int cflag=0,q;
 
+track x;
 float PID_UPdate(track *track1,float error,float time)
 {
  track1->error = error;
@@ -31,15 +32,18 @@ void PId_Init_tack(track *track2,float kp,float ki,float kd)
     track2->kp =kp;
     track2->ki =ki;
     track2->kd =kd;
+
 }
 
  int Get_Error() {
-  if(data[2]==0) return 0;      // M0=1 → 居中
-  else if(data[1]==0) return -50; // L1=1 → 偏左
-  else if(data[3]==0) return 50;  // R1=1 → 偏右
-  else if(data[0]==0) return -100;// L2=1 → 严重偏左
-  else if(data[4]==0) return 100; // R2=1 → 严重偏右
-  else return 0;                   // 默认值（脱轨处理）
+   if(data[2]==0 && data[1]==0) return -5;
+   else if(data[2]==0 && data[3]==0) return 5;
+//    else if(data[2]==0) return 0;      // M0=1 → 居中
+   else if(data[1]==0) return -15; // L1=1 → 偏左
+   else if(data[3]==0) return 15;  // R1=1 → 偏右
+   else if(data[0]==0) return -25;// L2=1 → 严重偏左
+   else if(data[4]==0) return 25; // R2=1 → 严重偏右
+   return 0;                   // 默认值（脱轨处理）
 }
 
 

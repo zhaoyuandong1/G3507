@@ -1,430 +1,239 @@
-/*
- * 立创开发板软硬件资料与相关扩展板软硬件资料官网全部开源
- * 开发板官网：www.lckfb.com
- * 文档网站：wiki.lckfb.com
- * 技术支持常驻论坛，任何技术问题欢迎随时交流学习
- * 嘉立创社区问答：https://www.jlc-bbs.com/lckfb
- * 关注bilibili账号：【立创开发板】，掌握我们的最新动态！
- * 不靠卖板赚钱，以培养中国工程师为己任
- */
+#include "ti_msp_dl_config.h"
+
+#include "inv_mpu.h"
+#include "inv_mpu_dmp_motion_driver.h"
+
+#include <stdio.h>
+#include <stdint.h>
+#include <stdlib.h>
+#include <string.h>
 
 #include "mpu6050.h"
-#include "stdio.h"
+#include "mspm0_i2c.h"
+#include "interrupt.h"
 
+/* Data requested by client. */
+#define PRINT_ACCEL     (0x01)
+#define PRINT_GYRO      (0x02)
+#define PRINT_QUAT      (0x04)
 
-/******************************************************************
- * 函 数 名 称：IIC_Start
- * 函 数 说 明：IIC起始时序
- * 函 数 形 参：无
- * 函 数 返 回：无
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-void IIC_Start(void)
+#define ACCEL_ON        (0x01)
+#define GYRO_ON         (0x02)
+
+#define MOTION          (0)
+#define NO_MOTION       (1)
+
+/* Starting sampling rate. */
+#define DEFAULT_MPU_HZ  (100)
+
+#define FLASH_SIZE      (512)
+#define FLASH_MEM_START ((void*)0x1800)
+
+struct rx_s {
+    unsigned char header[3];
+    unsigned char cmd;
+};
+struct hal_s {
+    unsigned char sensors;
+    unsigned char dmp_on;
+    unsigned char wait_for_tap;
+    volatile unsigned char new_gyro;
+    unsigned short report;
+    unsigned short dmp_features;
+    unsigned char motion_int_mode;
+    struct rx_s rx;
+};
+static struct hal_s hal = {0};
+
+unsigned long sensor_timestamp;
+short gyro[3], accel[3], sensors;
+unsigned char more;
+long quat[4];
+
+#define q30  (1073741824.0f) /* 2^30 = 1073741824 */
+float pitch, roll, yaw;
+
+/* The sensors can be mounted onto the board in any orientation. The mounting
+ * matrix seen below tells the MPL how to rotate the raw data from thei
+ * driver(s).
+ * TODO: The following matrices refer to the configuration on an internal test
+ * board at Invensense. If needed, please modify the matrices to match the
+ * chip-to-body matrix for your particular set up.
+ */
+static signed char gyro_orientation[9] = {-1, 0, 0,
+                                           0,-1, 0,
+                                           0, 0, 1};
+
+static void tap_cb(unsigned char direction, unsigned char count)
 {
-        SDA_OUT();
-        SCL(1);
-        SDA(0);
 
-        SDA(1);
-        delay_us(5);
-        SDA(0);
-        delay_us(5);
-
-        SCL(0);
-}
-/******************************************************************
- * 函 数 名 称：IIC_Stop
- * 函 数 说 明：IIC停止信号
- * 函 数 形 参：无
- * 函 数 返 回：无
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-void IIC_Stop(void)
-{
-        SDA_OUT();
-        SCL(0);
-        SDA(0);
-
-        SCL(1);
-        delay_us(5);
-        SDA(1);
-        delay_us(5);
-
-}
-
-/******************************************************************
- * 函 数 名 称：IIC_Send_Ack
- * 函 数 说 明：主机发送应答或者非应答信号
- * 函 数 形 参：0发送应答  1发送非应答
- * 函 数 返 回：无
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-void IIC_Send_Ack(unsigned char ack)
-{
-        SDA_OUT();
-        SCL(0);
-        SDA(0);
-        delay_us(5);
-        if(!ack) SDA(0);
-        else     SDA(1);
-        SCL(1);
-        delay_us(5);
-        SCL(0);
-        SDA(1);
 }
 
-
-/******************************************************************
- * 函 数 名 称：I2C_WaitAck
- * 函 数 说 明：等待从机应答
- * 函 数 形 参：无
- * 函 数 返 回：0有应答  1超时无应答
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-unsigned char I2C_WaitAck(void)
+static void android_orient_cb(unsigned char orientation)
 {
 
-        char ack = 0;
-        unsigned char ack_flag = 10;
-        SCL(0);
-        SDA(1);
-        SDA_IN();
-
-        SCL(1);
-        while( (SDA_GET()==1) && ( ack_flag ) )
-        {
-                ack_flag--;
-                delay_us(5);
-        }
-
-        if( ack_flag <= 0 )
-        {
-                IIC_Stop();
-                return 1;
-        }
-        else
-        {
-                SCL(0);
-                SDA_OUT();
-        }
-        return ack;
 }
 
-/******************************************************************
- * 函 数 名 称：Send_Byte
- * 函 数 说 明：写入一个字节
- * 函 数 形 参：dat要写人的数据
- * 函 数 返 回：无
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-void Send_Byte(uint8_t dat)
+/* These next two functions converts the orientation matrix (see
+ * gyro_orientation) to a scalar representation for use by the DMP.
+ * NOTE: These functions are borrowed from Invensense's MPL.
+ */
+static inline unsigned short inv_row_2_scale(const signed char *row)
 {
-        int i = 0;
-        SDA_OUT();
-        SCL(0);//拉低时钟开始数据传输
+    unsigned short b;
 
-        for( i = 0; i < 8; i++ )
-        {
-                SDA( (dat & 0x80) >> 7 );
-                delay_us(1);
-                SCL(1);
-                delay_us(5);
-                SCL(0);
-                delay_us(5);
-                dat<<=1;
-        }
+    if (row[0] > 0)
+        b = 0;
+    else if (row[0] < 0)
+        b = 4;
+    else if (row[1] > 0)
+        b = 1;
+    else if (row[1] < 0)
+        b = 5;
+    else if (row[2] > 0)
+        b = 2;
+    else if (row[2] < 0)
+        b = 6;
+    else
+        b = 7;      // error
+    return b;
 }
 
-/******************************************************************
- * 函 数 名 称：Read_Byte
- * 函 数 说 明：IIC读时序
- * 函 数 形 参：无
- * 函 数 返 回：读到的数据
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-unsigned char Read_Byte(void)
+static inline unsigned short inv_orientation_matrix_to_scalar(
+    const signed char *mtx)
 {
-    unsigned char i,receive=0;
-    SDA_IN();//SDA设置为输入
-    for(i=0;i<8;i++ )
+    unsigned short scalar;
+
+    /*
+       XYZ  010_001_000 Identity Matrix
+       XZY  001_010_000
+       YXZ  010_000_001
+       YZX  000_010_001
+       ZXY  001_000_010
+       ZYX  000_001_010
+     */
+
+    scalar = inv_row_2_scale(mtx);
+    scalar |= inv_row_2_scale(mtx + 3) << 3;
+    scalar |= inv_row_2_scale(mtx + 6) << 6;
+
+
+    return scalar;
+}
+
+void MPU6050_Init(void)
+{
+    int result;
+    unsigned char accel_fsr;
+    unsigned short gyro_rate, gyro_fsr;
+
+    if(DL_I2C_getSDAStatus(I2C_MPU6050_INST) == DL_I2C_CONTROLLER_SDA_LOW)
+        mpu6050_i2c_sda_unlock();
+
+    result = mpu_init();
+    if (result)
+        return;
+
+    result = 0;
+    /* Get/set hardware configuration. Start gyro. */
+    /* Wake up all sensors. */
+    result += mpu_set_sensors(INV_XYZ_GYRO | INV_XYZ_ACCEL);
+    /* Push both gyro and accel data into the FIFO. */
+    result += mpu_configure_fifo(INV_XYZ_GYRO | INV_XYZ_ACCEL);
+    result += mpu_set_sample_rate(DEFAULT_MPU_HZ);
+    /* Read back configuration in case it was set improperly. */
+    result += mpu_get_sample_rate(&gyro_rate);
+    result += mpu_get_gyro_fsr(&gyro_fsr);
+    result += mpu_get_accel_fsr(&accel_fsr);
+
+    /* Initialize HAL state variables. */
+    memset(&hal, 0, sizeof(hal));
+    hal.sensors = ACCEL_ON | GYRO_ON;
+    hal.report = PRINT_QUAT;
+
+    /* To initialize the DMP:
+     * 1. Call dmp_load_motion_driver_firmware(). This pushes the DMP image in
+     *    inv_mpu_dmp_motion_driver.h into the MPU memory.
+     * 2. Push the gyro and accel orientation matrix to the DMP.
+     * 3. Register gesture callbacks. Don't worry, these callbacks won't be
+     *    executed unless the corresponding feature is enabled.
+     * 4. Call dmp_enable_feature(mask) to enable different features.
+     * 5. Call dmp_set_fifo_rate(freq) to select a DMP output rate.
+     * 6. Call any feature-specific control functions.
+     *
+     * To enable the DMP, just call mpu_set_dmp_state(1). This function can
+     * be called repeatedly to enable and disable the DMP at runtime.
+     *
+     * The following is a short summary of the features supported in the DMP
+     * image provided in inv_mpu_dmp_motion_driver.c:
+     * DMP_FEATURE_LP_QUAT: Generate a gyro-only quaternion on the DMP at
+     * 200Hz. Integrating the gyro data at higher rates reduces numerical
+     * errors (compared to integration on the MCU at a lower sampling rate).
+     * DMP_FEATURE_6X_LP_QUAT: Generate a gyro/accel quaternion on the DMP at
+     * 200Hz. Cannot be used in combination with DMP_FEATURE_LP_QUAT.
+     * DMP_FEATURE_TAP: Detect taps along the X, Y, and Z axes.
+     * DMP_FEATURE_ANDROID_ORIENT: Google's screen rotation algorithm. Triggers
+     * an event at the four orientations where the screen should rotate.
+     * DMP_FEATURE_GYRO_CAL: Calibrates the gyro data after eight seconds of
+     * no motion.
+     * DMP_FEATURE_SEND_RAW_ACCEL: Add raw accelerometer data to the FIFO.
+     * DMP_FEATURE_SEND_RAW_GYRO: Add raw gyro data to the FIFO.
+     * DMP_FEATURE_SEND_CAL_GYRO: Add calibrated gyro data to the FIFO. Cannot
+     * be used in combination with DMP_FEATURE_SEND_RAW_GYRO.
+     */
+    result += dmp_load_motion_driver_firmware();
+    result += dmp_set_orientation(
+        inv_orientation_matrix_to_scalar(gyro_orientation));
+    result += dmp_register_tap_cb(tap_cb);
+    result += dmp_register_android_orient_cb(android_orient_cb);
+    hal.dmp_features = DMP_FEATURE_6X_LP_QUAT | DMP_FEATURE_TAP |
+        DMP_FEATURE_ANDROID_ORIENT | DMP_FEATURE_SEND_RAW_ACCEL | DMP_FEATURE_SEND_CAL_GYRO |
+        DMP_FEATURE_GYRO_CAL;
+    result += dmp_enable_feature(hal.dmp_features);
+    result += dmp_set_fifo_rate(DEFAULT_MPU_HZ);
+    result += mpu_set_dmp_state(1);
+    hal.dmp_on = 1;
+
+    if (result)
+        return;
+
+    /* Enable INT_GROUP1 handler. */
+    enable_group1_irq = 1;
+}
+
+int Read_Quad(void)
+{
+    /* This function gets new data from the FIFO when the DMP is in
+    * use. The FIFO can contain any combination of gyro, accel,
+    * quaternion, and gesture data. The sensors parameter tells the
+    * caller which data fields were actually populated with new data.
+    * For example, if sensors == (INV_XYZ_GYRO | INV_WXYZ_QUAT), then
+    * the FIFO isn't being filled with accel data.
+    * The driver parses the gesture data to determine if a gesture
+    * event has occurred; on an event, the application will be notified
+    * via a callback (assuming that a callback function was properly
+    * registered). The more parameter is non-zero if there are
+    * leftover packets in the FIFO.
+    */
+
+    int result;
+
+    do
     {
-        SCL(0);
-        delay_us(5);
-        SCL(1);
-        delay_us(5);
-        receive<<=1;
-        if( SDA_GET() )
-        {
-            receive|=1;
-        }
-        delay_us(5);
-    }
+        result = dmp_read_fifo(gyro, accel, quat, &sensor_timestamp, &sensors, &more);
+    }while(more);
 
-    SCL(0);
+    if(result)
+        return -1;
 
-    return receive;
-}
+    float q0 = quat[0] / q30;
+    float q1 = quat[1] / q30;
+    float q2 = quat[2] / q30;
+    float q3 = quat[3] / q30;
 
-/******************************************************************
- * 函 数 名 称：MPU6050_WriteReg
- * 函 数 说 明：IIC连续写入数据
- * 函 数 形 参：addr器件地址 regaddr寄存器地址 num要写入的长度 regdata写入的数据地址
- * 函 数 返 回：0=读取成功   其他=读取失败
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-char MPU6050_WriteReg(uint8_t addr,uint8_t regaddr,uint8_t num,uint8_t *regdata)
-{
-    uint16_t i = 0;
-    IIC_Start();
-    Send_Byte((addr<<1)|0);
-    if( I2C_WaitAck() == 1 ) {IIC_Stop();return 1;}
-    Send_Byte(regaddr);
-    if( I2C_WaitAck() == 1 ) {IIC_Stop();return 2;}
+    pitch  = asin(-2 * q1 * q3 + 2 * q0 * q2) * 57.3;
+    roll   = atan2(2 * q2 * q3 + 2 * q0 * q1, -2 * q1 * q1 - 2 * q2 * q2 + 1) * 57.3;
+    yaw    = atan2(2 * (q1 * q2 + q0 * q3), q0 * q0 + q1 * q1 - q2 * q2 - q3 * q3) * 57.3;
 
-    for(i=0;i<num;i++)
-    {
-        Send_Byte(regdata[i]);
-        if( I2C_WaitAck() == 1 ) {IIC_Stop();return (3+i);}
-    }
-
-    IIC_Stop();
-    return 0;
-}
-
-
-/******************************************************************
- * 函 数 名 称：MPU6050_ReadData
- * 函 数 说 明：IIC连续读取数据
- * 函 数 形 参：addr器件地址 regaddr寄存器地址 num要读取的长度 Read读取到的数据要存储的地址
- * 函 数 返 回：0=读取成功   其他=读取失败
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-char MPU6050_ReadData(uint8_t addr, uint8_t regaddr,uint8_t num,uint8_t* Read)
-{
-        uint8_t i;
-        IIC_Start();
-        Send_Byte((addr<<1)|0);
-        if( I2C_WaitAck() == 1 ) {IIC_Stop();return 1;}
-        Send_Byte(regaddr);
-        if( I2C_WaitAck() == 1 ) {IIC_Stop();return 2;}
-
-        IIC_Start();
-        Send_Byte((addr<<1)|1);
-        if( I2C_WaitAck() == 1 ) {IIC_Stop();return 3;}
-
-        for(i=0;i<(num-1);i++){
-                Read[i]=Read_Byte();
-                IIC_Send_Ack(0);
-        }
-        Read[i]=Read_Byte();
-        IIC_Send_Ack(1);
-        IIC_Stop();
-        return 0;
-}
-
-
-/******************************************************************
- * 函 数 名 称：MPU_Set_Gyro_Fsr
- * 函 数 说 明：设置MPU6050陀螺仪传感器满量程范围
- * 函 数 形 参：fsr:0,±250dps;1,±500dps;2,±1000dps;3,±2000dps
- * 函 数 返 回：0,设置成功  其他,设置失败
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-uint8_t MPU_Set_Gyro_Fsr(uint8_t fsr)
-{
-        return MPU6050_WriteReg(0x68,MPU_GYRO_CFG_REG,1,(uint8_t*)(fsr<<3)); //设置陀螺仪满量程范围
-}
-
-/******************************************************************
- * 函 数 名 称：MPU_Set_Accel_Fsr
- * 函 数 说 明：设置MPU6050加速度传感器满量程范围
- * 函 数 形 参：fsr:0,±2g;1,±4g;2,±8g;3,±16g
- * 函 数 返 回：0,设置成功  其他,设置失败
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-uint8_t MPU_Set_Accel_Fsr(uint8_t fsr)
-{
-        return MPU6050_WriteReg(0x68,MPU_ACCEL_CFG_REG,1,(uint8_t*)(fsr<<3)); //设置加速度传感器满量程范围
-}
-
-/******************************************************************
- * 函 数 名 称：MPU_Set_LPF
- * 函 数 说 明：设置MPU6050的数字低通滤波器
- * 函 数 形 参：lpf:数字低通滤波频率(Hz)
- * 函 数 返 回：0,设置成功  其他,设置失败
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-uint8_t MPU_Set_LPF(uint16_t lpf)
-{
-      uint8_t data=0;
-
-      if(lpf>=188)data=1;
-      else if(lpf>=98)data=2;
-      else if(lpf>=42)data=3;
-      else if(lpf>=20)data=4;
-      else if(lpf>=10)data=5;
-      else data=6;
-      return data=MPU6050_WriteReg(0x68,MPU_CFG_REG,1,&data);//设置数字低通滤波器
-}
-/******************************************************************
- * 函 数 名 称：MPU_Set_Rate
- * 函 数 说 明：设置MPU6050的采样率(假定Fs=1KHz)
- * 函 数 形 参：rate:4~1000(Hz)  初始化中rate取50
- * 函 数 返 回：0,设置成功  其他,设置失败
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-uint8_t MPU_Set_Rate(uint16_t rate)
-{
-        uint8_t data;
-        if(rate>1000)rate=1000;
-        if(rate<4)rate=4;
-        data=1000/rate-1;
-        data=MPU6050_WriteReg(0x68,MPU_SAMPLE_RATE_REG,1,&data);        //设置数字低通滤波器
-        return MPU_Set_LPF(rate/2);            //自动设置LPF为采样率的一半
-}
-
-
-/******************************************************************
- * 函 数 名 称：MPU6050ReadGyro
- * 函 数 说 明：读取陀螺仪数据
- * 函 数 形 参：陀螺仪数据存储地址
- * 函 数 返 回：无
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-void MPU6050ReadGyro(short *gyroData)
-{
-        uint8_t buf[6];
-        uint8_t reg = 0;
-        //MPU6050_GYRO_OUT = MPU6050陀螺仪数据寄存器地址
-        //陀螺仪数据输出寄存器总共由6个寄存器组成，
-        //输出X/Y/Z三个轴的陀螺仪传感器数据，高字节在前，低字节在后。
-        //每一个轴16位，按顺序为xyz
-        reg = MPU6050_ReadData(0x68,MPU6050_GYRO_OUT,6,buf);
-        if( reg == 0 )
-        {
-                gyroData[0] = (buf[0] << 8) | buf[1];
-                gyroData[1] = (buf[2] << 8) | buf[3];
-                gyroData[2] = (buf[4] << 8) | buf[5];
-        }
-}
-
-/******************************************************************
- * 函 数 名 称：MPU6050ReadAcc
- * 函 数 说 明：读取加速度数据
- * 函 数 形 参：加速度数据存储地址
- * 函 数 返 回：无
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-void MPU6050ReadAcc(short *accData)
-{
-        uint8_t buf[6];
-        uint8_t reg = 0;
-        //MPU6050_ACC_OUT = MPU6050加速度数据寄存器地址
-        //加速度传感器数据输出寄存器总共由6个寄存器组成，
-        //输出X/Y/Z三个轴的加速度传感器值，高字节在前，低字节在后。
-        reg = MPU6050_ReadData(0x68, MPU6050_ACC_OUT, 6, buf);
-        if( reg == 0)
-        {
-                accData[0] = (buf[0] << 8) | buf[1];
-                accData[1] = (buf[2] << 8) | buf[3];
-                accData[2] = (buf[4] << 8) | buf[5];
-        }
-}
-
-/******************************************************************
- * 函 数 名 称：MPU6050_GetTemp
- * 函 数 说 明：读取MPU6050上的温度
- * 函 数 形 参：无
- * 函 数 返 回：温度值单位为℃
- * 作       者：LC
- * 备       注：温度换算公式为：Temperature = 36.53 + regval/340
-******************************************************************/
-float MPU6050_GetTemp(void)
-{
-    short temp3;
-    uint8_t buf[2];
-    float Temperature = 0;
-    MPU6050_ReadData(0x68,MPU6050_RA_TEMP_OUT_H,2,buf);
-    temp3= (buf[0] << 8) | buf[1];
-    Temperature=((double) temp3/340.0)+36.53;
-    return Temperature;
-}
-
-/******************************************************************
- * 函 数 名 称：MPU6050ReadID
- * 函 数 说 明：读取MPU6050的器件地址
- * 函 数 形 参：无
- * 函 数 返 回：0=检测不到MPU6050   1=能检测到MPU6050
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-uint8_t MPU6050ReadID(void)
-{
-        unsigned char Re[2] = {0};
-        //器件ID寄存器 = 0x75
-        lc_printf("mpu=%d\r\n",MPU6050_ReadData(0x68,0X75,1,Re)); //读器件地址
-
-        if (Re[0] != 0x68)
-        {
-            lc_printf("There is no detection of MPU6050 !!!!");
-            return 1;
-         }
-        else
-        {
-            lc_printf("MPU6050 ID = %x\r\n",Re[0]);
-            return 0;
-        }
-        return 0;
-}
-
-/******************************************************************
- * 函 数 名 称：MPU6050_Init
- * 函 数 说 明：MPU6050初始化
- * 函 数 形 参：无
- * 函 数 返 回：0成功  1没有检测到MPU6050
- * 作       者：LC
- * 备       注：无
-******************************************************************/
-char MPU6050_Init(void)
-{
-    SDA_OUT();
-    delay_ms(10);
-    //复位6050
-    MPU6050_WriteReg(0x68,MPU6050_RA_PWR_MGMT_1, 1,(uint8_t*)(0x80));
-    delay_ms(100);
-    //电源管理寄存器
-    //选择X轴陀螺作为参考PLL的时钟源，设置CLKSEL=001
-    MPU6050_WriteReg(0x68,MPU6050_RA_PWR_MGMT_1,1, (uint8_t*)(0x00));
-
-    MPU_Set_Gyro_Fsr(3);    //陀螺仪传感器,±2000dps
-    MPU_Set_Accel_Fsr(0);   //加速度传感器,±2g
-    MPU_Set_Rate(50);
-
-    MPU6050_WriteReg(0x68,MPU_INT_EN_REG , 1,(uint8_t*)0x00);        //关闭所有中断
-    MPU6050_WriteReg(0x68,MPU_USER_CTRL_REG,1,(uint8_t*)0x00);       //I2C主模式关闭
-    MPU6050_WriteReg(0x68,MPU_FIFO_EN_REG,1,(uint8_t*)0x00);         //关闭FIFO
-    MPU6050_WriteReg(0x68,MPU_INTBP_CFG_REG,1,(uint8_t*)0X80);       //INT引脚低电平有效
-
-    if( MPU6050ReadID() == 0 )//检查是否有6050
-    {
-            MPU6050_WriteReg(0x68,MPU6050_RA_PWR_MGMT_1, 1,(uint8_t*)0x01);//设置CLKSEL,PLL X轴为参考
-            MPU6050_WriteReg(0x68,MPU_PWR_MGMT2_REG, 1,(uint8_t*)0x00);//加速度与陀螺仪都工作
-            MPU_Set_Rate(50);
-            return 1;
-    }
     return 0;
 }

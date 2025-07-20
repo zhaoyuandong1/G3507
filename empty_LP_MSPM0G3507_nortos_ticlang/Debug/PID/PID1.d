@@ -1,4 +1,0 @@
-# FIXED
-
-PID/PID1.o: ../PID/PID1.c ../PID/PID1.h
-../PID/PID1.h:

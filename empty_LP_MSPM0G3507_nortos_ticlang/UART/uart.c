@@ -60,50 +60,50 @@ float Get_Data(void)
 /*
  * 根据串口信息进行PID调参
  */
-void UART_PID_Adjust(int num)
-{
-    float data_Get = Get_Data(); // 存放接收到的数据
-//    printf("data=%.2f\r\n",data_Get);
-    if(num == 1)//左边电机
-    {
-        // if(DataBuff[0]=='P' && DataBuff[1]=='1') // 位置环P
-        //     pid_l_position.kp = data_Get;
-        // else if(DataBuff[0]=='I' && DataBuff[1]=='1') // 位置环I
-        //     pid_l_position.ki = data_Get;
-        // else if(DataBuff[0]=='D' && DataBuff[1]=='1') // 位置环D
-        //     pid_l_position.kd = data_Get;
-         if(DataBuff[0]=='P' && DataBuff[1]=='2') // 速度环P
-          L.Kp = data_Get;
-        else if(DataBuff[0]=='I' && DataBuff[1]=='2') // 速度环I
-            L.Ki = data_Get;
-        else if(DataBuff[0]=='D' && DataBuff[1]=='2') // 速度环D
-            L.Kd = data_Get;
-        else if((DataBuff[0]=='S' && DataBuff[1]=='p') && DataBuff[2]=='e') //目标速度
-            L.target = data_Get;
-    //     else if((DataBuff[0]=='P' && DataBuff[1]=='o') && DataBuff[2]=='s') //目标位置
-    //         L_Target_Position = data_Get;
-    }
-    else if(num == 0) // 右边电机
-    {
-        // if(DataBuff[0]=='P' && DataBuff[1]=='1') // 位置环P
-        //     pid_r_position.kp = data_Get;
-        // else if(DataBuff[0]=='I' && DataBuff[1]=='1') // 位置环I
-        //     pid_r_position.ki = data_Get;
-        // else if(DataBuff[0]=='D' && DataBuff[1]=='1') // 位置环D
-        //     pid_r_position.kd = data_Get;
-         if(DataBuff[0]=='P' && DataBuff[1]=='2') // 速度环P
-            R.Kd = data_Get;
-        else if(DataBuff[0]=='I' && DataBuff[1]=='2') // 速度环I
-            R.Ki = data_Get;
-        else if(DataBuff[0]=='D' && DataBuff[1]=='2') // 速度环D
-            R.Kd = data_Get;
-        else if((DataBuff[0]=='S' && DataBuff[1]=='p') && DataBuff[2]=='e') //目标速度
-            R.target = data_Get;
-        // else if((DataBuff[0]=='P' && DataBuff[1]=='o') && DataBuff[2]=='s') //目标位置
-        //     R_Target_Position = data_Get;
-    }
+// void UART_PID_Adjust(int num)
+// {
+//     float data_Get = Get_Data(); // 存放接收到的数据
+// //    printf("data=%.2f\r\n",data_Get);
+//     if(num == 1)//左边电机
+//     {
+//         // if(DataBuff[0]=='P' && DataBuff[1]=='1') // 位置环P
+//         //     pid_l_position.kp = data_Get;
+//         // else if(DataBuff[0]=='I' && DataBuff[1]=='1') // 位置环I
+//         //     pid_l_position.ki = data_Get;
+//         // else if(DataBuff[0]=='D' && DataBuff[1]=='1') // 位置环D
+//         //     pid_l_position.kd = data_Get;
+//          if(DataBuff[0]=='P' && DataBuff[1]=='2') // 速度环P
+//           L.Kp = data_Get;
+//         else if(DataBuff[0]=='I' && DataBuff[1]=='2') // 速度环I
+//             L.Ki = data_Get;
+//         else if(DataBuff[0]=='D' && DataBuff[1]=='2') // 速度环D
+//             L.Kd = data_Get;
+//         else if((DataBuff[0]=='S' && DataBuff[1]=='p') && DataBuff[2]=='e') //目标速度
+//             L.target = data_Get;
+//     //     else if((DataBuff[0]=='P' && DataBuff[1]=='o') && DataBuff[2]=='s') //目标位置
+//     //         L_Target_Position = data_Get;
+//     }
+//     else if(num == 0) // 右边电机
+//     {
+//         // if(DataBuff[0]=='P' && DataBuff[1]=='1') // 位置环P
+//         //     pid_r_position.kp = data_Get;
+//         // else if(DataBuff[0]=='I' && DataBuff[1]=='1') // 位置环I
+//         //     pid_r_position.ki = data_Get;
+//         // else if(DataBuff[0]=='D' && DataBuff[1]=='1') // 位置环D
+//         //     pid_r_position.kd = data_Get;
+//          if(DataBuff[0]=='P' && DataBuff[1]=='2') // 速度环P
+//             R.Kd = data_Get;
+//         else if(DataBuff[0]=='I' && DataBuff[1]=='2') // 速度环I
+//             R.Ki = data_Get;
+//         else if(DataBuff[0]=='D' && DataBuff[1]=='2') // 速度环D
+//             R.Kd = data_Get;
+//         else if((DataBuff[0]=='S' && DataBuff[1]=='p') && DataBuff[2]=='e') //目标速度
+//             R.target = data_Get;
+//         // else if((DataBuff[0]=='P' && DataBuff[1]=='o') && DataBuff[2]=='s') //目标位置
+//         //     R_Target_Position = data_Get;
+//     }
     
-}
+// }
 static void uart0_sendChar(uint8_t dat)
 {
     //当串口0忙的时候等待，不忙的时候再发送传进来的字符

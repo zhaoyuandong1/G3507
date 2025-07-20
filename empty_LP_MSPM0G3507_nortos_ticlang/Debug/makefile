@@ -4,28 +4,26 @@
 
 SHELL = cmd.exe
 
-CG_TOOL_ROOT := D:/TI/ccs2020/ccs/tools/compiler/ti-cgt-armllvm_4.0.3.LTS
+CG_TOOL_ROOT := F:/ti/ccs2020/ccs/tools/compiler/ti-cgt-armllvm_4.0.3.LTS
 
 GEN_OPTS__FLAG := @"./device.opt" 
 GEN_CMDS__FLAG := -Wl,-l"./device_linker.cmd" 
 
 ORDERED_OBJS += \
-"./ce.o" \
 "./ti_msp_dl_config.o" \
 "./startup_mspm0g350x_ticlang.o" \
 "./main.o" \
 "./Board/board.o" \
 "./Delay/Delay.o" \
+"./Encoder/Encoder.o" \
 "./Hardware/hardware.o" \
+"./Hardware/sersor.o" \
+"./JY61P/JY61P.o" \
+"./JY61P/bsp_gyro.o" \
 "./MOTOR/motor.o" \
-"./MPU6050/inv_mpu.o" \
-"./MPU6050/inv_mpu_dmp_motion_driver.o" \
-"./MPU6050/mpu6050.o" \
 "./OLED/oled.o" \
-"./PID/PID1.o" \
-"./PID/pid.o" \
 "./UART/uart.o" \
-"./tarck/track.o" \
+"./control/control.o" \
 $(GEN_CMDS__FLAG) \
 -Wl,-ldevice.cmd.genlibs \
 -Wl,-llibc.a \
@@ -40,23 +38,23 @@ RMDIR := RMDIR /S/Q
 -include subdir_vars.mk
 -include Board/subdir_vars.mk
 -include Delay/subdir_vars.mk
+-include Encoder/subdir_vars.mk
 -include Hardware/subdir_vars.mk
+-include JY61P/subdir_vars.mk
 -include MOTOR/subdir_vars.mk
--include MPU6050/subdir_vars.mk
 -include OLED/subdir_vars.mk
--include PID/subdir_vars.mk
 -include UART/subdir_vars.mk
--include tarck/subdir_vars.mk
+-include control/subdir_vars.mk
 -include subdir_rules.mk
 -include Board/subdir_rules.mk
 -include Delay/subdir_rules.mk
+-include Encoder/subdir_rules.mk
 -include Hardware/subdir_rules.mk
+-include JY61P/subdir_rules.mk
 -include MOTOR/subdir_rules.mk
--include MPU6050/subdir_rules.mk
 -include OLED/subdir_rules.mk
--include PID/subdir_rules.mk
 -include UART/subdir_rules.mk
--include tarck/subdir_rules.mk
+-include control/subdir_rules.mk
 -include objects.mk
 
 ifneq ($(MAKECMDGOALS),clean)
@@ -167,15 +165,15 @@ all: $(OBJS) $(GEN_CMDS)
 empty_LP_MSPM0G3507_nortos_ticlang.out: $(OBJS) $(GEN_CMDS)
 	@echo 'Building target: "$@"'
 	@echo 'Invoking: Arm Linker'
-	"D:/TI/ccs2020/ccs/tools/compiler/ti-cgt-armllvm_4.0.3.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -DMPU6050 -DMOTION_DRIVER_TARGET_MSPM0 -gdwarf-3 -Wl,-m"empty_LP_MSPM0G3507_nortos_ticlang.map" -Wl,-i"C:/ti/mspm0_sdk_2_05_01_00/source" -Wl,-i"D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang" -Wl,-i"D:/25diansai/empty_LP_MSPM0G3507_nortos_ticlang/Debug/syscfg" -Wl,-i"D:/TI/ccs2020/ccs/tools/compiler/ti-cgt-armllvm_4.0.3.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="empty_LP_MSPM0G3507_nortos_ticlang_linkInfo.xml" -Wl,--rom_model -o "empty_LP_MSPM0G3507_nortos_ticlang.out" $(ORDERED_OBJS)
+	"F:/ti/ccs2020/ccs/tools/compiler/ti-cgt-armllvm_4.0.3.LTS/bin/tiarmclang.exe" @"device.opt"  -march=thumbv6m -mcpu=cortex-m0plus -mfloat-abi=soft -mlittle-endian -mthumb -O2 -DMPU6050 -DMOTION_DRIVER_TARGET_MSPM0 -gdwarf-3 -Wl,-m"empty_LP_MSPM0G3507_nortos_ticlang.map" -Wl,-i"C:/ti/mspm0_sdk_2_05_01_00/source" -Wl,-i"F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang" -Wl,-i"F:/Tiproject/intcar/intcar/empty_LP_MSPM0G3507_nortos_ticlang/Debug/syscfg" -Wl,-i"F:/ti/ccs2020/ccs/tools/compiler/ti-cgt-armllvm_4.0.3.LTS/lib" -Wl,--diag_wrap=off -Wl,--display_error_number -Wl,--warn_sections -Wl,--xml_link_info="empty_LP_MSPM0G3507_nortos_ticlang_linkInfo.xml" -Wl,--rom_model -o "empty_LP_MSPM0G3507_nortos_ticlang.out" $(ORDERED_OBJS)
 	@echo 'Finished building target: "$@"'
 	@echo ' '
 
 # Other Targets
 clean:
 	-$(RM) $(GEN_MISC_FILES__QUOTED)$(GEN_FILES__QUOTED)$(EXE_OUTPUTS__QUOTED)
-	-$(RM) "ce.o" "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "main.o" "Board\board.o" "Delay\Delay.o" "Hardware\hardware.o" "MOTOR\motor.o" "MPU6050\inv_mpu.o" "MPU6050\inv_mpu_dmp_motion_driver.o" "MPU6050\mpu6050.o" "OLED\oled.o" "PID\PID1.o" "PID\pid.o" "UART\uart.o" "tarck\track.o" 
-	-$(RM) "ce.d" "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "main.d" "Board\board.d" "Delay\Delay.d" "Hardware\hardware.d" "MOTOR\motor.d" "MPU6050\inv_mpu.d" "MPU6050\inv_mpu_dmp_motion_driver.d" "MPU6050\mpu6050.d" "OLED\oled.d" "PID\PID1.d" "PID\pid.d" "UART\uart.d" "tarck\track.d" 
+	-$(RM) "ti_msp_dl_config.o" "startup_mspm0g350x_ticlang.o" "main.o" "Board\board.o" "Delay\Delay.o" "Encoder\Encoder.o" "Hardware\hardware.o" "Hardware\sersor.o" "JY61P\JY61P.o" "JY61P\bsp_gyro.o" "MOTOR\motor.o" "OLED\oled.o" "UART\uart.o" "control\control.o" 
+	-$(RM) "ti_msp_dl_config.d" "startup_mspm0g350x_ticlang.d" "main.d" "Board\board.d" "Delay\Delay.d" "Encoder\Encoder.d" "Hardware\hardware.d" "Hardware\sersor.d" "JY61P\JY61P.d" "JY61P\bsp_gyro.d" "MOTOR\motor.d" "OLED\oled.d" "UART\uart.d" "control\control.d" 
 	-@echo 'Finished clean'
 	-@echo ' '
 

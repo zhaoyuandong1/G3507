@@ -1,9 +1,33 @@
 #include "pid.h"
+float Kp1,Ki1,Kd1;
+float PID_A(float Encoder,float Target)
+{
+	static float Bias, Last_bias, Last2_bias, Pwm;
+	Bias = Target - Encoder;               			                                                //计算偏差
+	Pwm += Kp1 * (Bias - Last_bias) + Ki1 * Bias + Kd1 * (Bias - 2 * Last_bias + Last2_bias);   	//增量式PI控制器
+	Last_bias = Bias;	                   															//保存上一次偏差
+	Last2_bias = Last_bias;
+	return Pwm;                        				                                        		//返回增量值
+}
+
+float PID_B(float Encoder,float Target)
+{
+	static float Bias, Last_bias, Last2_bias, Pwm;
+	Bias = Target-Encoder;               															//计算偏差
+	Pwm += Kp1 * (Bias - Last_bias) + Ki1 * Bias + Kd1 * (Bias - 2 * Last_bias + Last2_bias);   	//增量式PI控制器
+	Last_bias = Bias;	                   															//保存上一次偏差
+	Last2_bias = Last_bias;
+	return Pwm;
+}
 
 
-
-
-
+float PWM_Limit(float IN,float max,float min)                   //pwm限幅
+{
+	float OUT = IN;
+	if(OUT > max) OUT = max;
+	if(OUT < min) OUT = min;
+	return OUT;
+}
 
 
 

@@ -31,16 +31,37 @@
  */
 
 #include "main.h"
-float pitch =0,roll=0,yaw =0,yawi=0;
-int16_t Speed, Location;		//速度，位置
+#define  Limit		999						//PWM波限幅，百分比制
+// float pitch =0,roll=0,yaw =0,yawi=0;
+// int Yaw;
+// int16_t Speed, Location;		//速度，位置
 int32_t Get_Encoder_countA,encoderA_cnt,Get_Encoder_countB,encoderB_cnt,PWMA,PWMB;
- int32_t motor_speeda =4,motor_speedb = 4;//电机速度控制，0为停止
  int32_t motor_mode = MOTOR_STOP;//0默认停止  1速度环  2位置环  3循迹
 int cnt=0,cnt1=0,cnt2;
- uint16_t t;
- extern PID Tpid;
- int flag=0;
 
+/* USER CODE BEGIN PV */
+volatile int flag = 1;                                  //flag状态位：0-暂停；1-AB段；2-BC段；3-CD段；4-DA段；
+volatile int mode = 3;                                  //mode状态位：0-暂停；1-模式一... ...；
+volatile int flag_en = 1;                               //flag_en状态位：0-不使能；1-使能
+
+volatile uint32_t EncoderA_Port, EncoderB_Port;         //编码器端口
+volatile int32_t EncoderA_CNT = 0, EncoderB_CNT = 0;    //编码器计数值
+volatile int32_t EncoderA_VEL = 0, EncoderB_VEL = 0;    //马达速度
+
+extern float Pitch, Roll, Yaw;                          //姿态角
+
+volatile float LED_CNT = 0.0;
+volatile bool flag_LED = 0;
+void LED_Sound(void);
+// int flag=1,n=1,whiteflag=0,whiteflag1=0;         //白色区域计数标志位；白色区域计数值；陀螺仪模式标志位
+// int timebegin=0,timenum=0;          //陀螺仪模式启动延时标志位；延时计数值
+// int timebegin1=0,timenum1=0;          //陀螺仪模式启动延时标志位；延时计数值
+// int ledbegin=0,lednum=0,ledflag=0,ledflag1=0,ledflag2=0;        //声光模块延时标志位；延时计数值；声光模块启动标志位
+// int m;
+//  extern PID Tpid;
+// float CurrentA, CurrentB;			//编码器测得当前速度
+// float targetA=0, targetB=0;			//当前目标速度
+// float Speed_Middle=90;				//中值速度
 /*定义变量*/
 // float Target=5, Actual, Out;			//目标值，实际值，输出值
 // float Kp=250, Ki=0.5, Kd;					//比例项，积分项，微分项的权重
@@ -50,85 +71,169 @@ int cnt=0,cnt1=0,cnt2;
 // float Kp1=0.3, Ki1=0.3, Kd1;					//比例项，积分项，微分项的权重
 // float Error01, Error11, ErrorInt1;		//本次误差，上次误差，误差积分
 
+// int myabs(int a)                                                //自定义绝对值函数
+// {
+// 	int temp;
+// 	if(a < 0)  temp = -a;
+// 	else temp = a;
+// 	return temp;
+// }
+
+// void Control_AB(void)                       //模式一
+// {
+//     int Motor_Left, Motor_Right;            //电机赋值
+//     float bias;                             //差速值
+
+//     bias = Yaw;                             //直接将陀螺仪偏差值作为差速值
+//     targetA = Speed_Middle + bias;                //基于基准值给电机差速
+// 	targetB = Speed_Middle - bias;
+//     CurrentA = get_encoder_countL();       //左轮当前转速
+// 	CurrentB = get_encoder_countR();      //右轮当前转速
+// 	Motor_Left  = (int)PWM_Limit(PID_A(CurrentA,targetA),Limit, -Limit);
+// 	Motor_Right = (int)PWM_Limit(PID_A(CurrentB,targetB),Limit, -Limit);		//PWM限幅
+//     // if(L2 == 0 || L1 == 0 || M0 == 0 || R1 == 0  || R2 == 0  )
+//     // DL_GPIO_clearPins(GPIOB, MOTOR_STBY_PIN);
+//      lc_printf("%f    ",bias);
+//     lc_printf("%f,%f    ",targetA,targetB);
+//     lc_printf("%d,%d\n",Motor_Left,Motor_Right);
+// 	Set_PWM( Motor_Right,Motor_Left);
+// }
+
+// void Control_ABCDA(void)                    //模式二
+// {
+// 	int Motor_Left, Motor_Right;            //电机赋值
+//     float bias;                             //差速值
+//       if(m==6)                                //m为模式切换计数值，用于判断是否跑完全程
+//     {
+//       DL_GPIO_clearPins(GPIOB, MOTOR_STBY_PIN);
+//     }
+
+//     // if (ledflag==1) DL_GPIO_setPins(GPIO_LED_PORT,GPIO_LED_PIN_LED_PIN);    //声光模块驱动判断
+//     // else DL_GPIO_clearPins(GPIO_LED_PORT,GPIO_LED_PIN_LED_PIN);
+
+//     if (data[0]==1 && data[1]==1 && data[2]==1 && data[3]==1 && data[4]==1 ) timebegin=1;  //给小车一个出弯延时，使转向时小车中心位于点上
+//     else whiteflag=0;
+    
+//     if (whiteflag==1)           //在白色区域时，小车根据陀螺仪返回值走直线
+//     {
+//         ledflag2=0;
+//         if(ledflag1==0)
+//         {
+//             ledflag1=1;
+//             ledbegin=1;
+//             m++;
+//         }
+
+//         if (n%2==0)
+//         {
+//             if(Yaw<0) bias = 180 - myabs(Yaw);      //当走过白色区域为偶数时，须将+180和-180转化为0+和0-
+//             else bias = Yaw - 180;
+//         }
+//         else if(n%2==1)
+//         {
+//             bias = Yaw;                         //当走过白色区域为奇数时，不需要转化
+//         }
+//         flag=0;
+//     }
+//     else if(whiteflag==0)       //在黑线区域小车根据灰度返回值循迹
+//     {
+//         ledflag1=0;
+//         if(ledflag2==0)
+//         {
+//             ledflag2=1;
+//             ledbegin=1;
+//             m++;
+//         }
+
+//         if(flag==0)
+//         {
+//             flag=1;
+//             n=n+1;
+//         }
+//         bias = Get_Error();         //差速为灰度返回值
+//         whiteflag=0;
+//     }
+    
+//     targetA = Speed_Middle+bias;
+// 	targetB = Speed_Middle-bias;
+//     CurrentA = get_encoder_countL();       //左轮当前转速
+// 	CurrentB = get_encoder_countR();      //右轮当前转速
+// 	Motor_Left  = (int)PWM_Limit(PID_A(CurrentA,targetA),Limit, -Limit);
+// 	Motor_Right = (int)PWM_Limit(PID_B(CurrentB,targetB),Limit, -Limit);		//PWM限幅
+// 	 lc_printf("%f,%d   ", Yaw,m);
+//     lc_printf("%f,%f    ",targetA,targetB);
+//     lc_printf("%d,%d\n",Motor_Left,Motor_Right);
+//     Set_PWM( Motor_Right,Motor_Left );
+// }
+
+
 
 int main(void)
 {
-
+    // Kp1 = 5;
+    // Ki1 = 0;
+    // Kd1 = 0;
     SYSCFG_DL_init();
-    // OLED_Init();
-    
-    // encoder_init();
-
-    // MPU6050_Init();
+    //  SysTick_Init();
+    //   MPU6050_Init();
+    encoder_init();
     uart_Init();
-       lc_printf("start\r\n");
-    while(mpu_dmp_init())
-    {
-        lc_printf("dmp error\r\n");
-        delay_ms(200);
-    }
+    jy61pInit();
+    // Interrupt_Init();
+    //  lc_printf("start\r\n");
+    // while(mpu_dmp_init())
+    // {
+    //     lc_printf("dmp error\r\n");
+    //     delay_ms(200);
+    // }
     
     DL_TimerG_startCounter(TIMER_0_INST);
     NVIC_ClearPendingIRQ(TIMER_0_INST_INT_IRQN);
     NVIC_EnableIRQ(TIMER_0_INST_INT_IRQN);
     // PId_Init(&R,13,0.91,0.2,40);
-    PId_Init(&L,4.5,0.9,0.4,60);
+    // PId_Init(&L,4.5,0.9,0.4,60);
     // PId_Init(&R,0,0,0.0,40);
-     PId_Init(&R,4.5,0.9,0.4,60);
+    //  PId_Init(&R,4.5,0.9,0.4,60);
+    // PId_Init_tack(&x,9,0,0);
     // delay_ms(20000);
-    // BEEP();
+    BEEP();
     DL_GPIO_setPins(GPIOB, MOTOR_STBY_PIN);
-    // Set_PWM(999,999);// y   z
+    // Set_PWM(500,700);// y   z
 
-  // Set_PWM(-400,400);
+//   Set_PWM(-400,400);
   // delay_ms(500);
   // Set_PWM(0,0);
+    //  delay_ms(15000);
+    //  Yaw = (int)get_angle();
+    //    ce();
+    //    delay_ms(1000);
+    //    Set_PWM(0,0);
     while(1)
-    {   
+{ 
 
-    // DL_GPIO_setPins(LED_PORT,  LED_PIN_0_PIN);
-    // UART_PID_Adjust(1);
-    // if(cflag == 0)
-    //      motor_mode = MOTOR_XUNJI;
-    // else if(cflag == 1)
-    //        { 
-    //          motor_mode =MOTOR_SPEED;
-    //        }     
-        //获取欧拉角
-        // if( mpu_dmp_get_data(&pitch,&roll,&yaw) == 0 )
-        // {
-        //     // lc_printf("\r\npitch =%d,roll =%d,yaw =%d\r\n", (int)pitch, (int)roll,(int)yaw);
-        //     //  lc_printf("%d,%d,%d\n",(int)pitch,(int)roll,(int)yaw);
-        //     // lc_printf("\r\nroll =%d\r\n", (int)roll);
-        //     // lc_printf("\r\nyaw =%d\r\n", (int)yaw);
-        // }
-        //  delay_ms(20);
             // error = Get_Error();
-            // PWMA = 500 - PID_UPdate();
-            // PWMB = 500 + PID_UPdate();
+            // PWMA = 500+ PID_UPdate(&x,error,0.01);
+            // PWMB = 500- PID_UPdate(&x,error,0.01);
+            // delay_ms(20000);
+         
+           Yaw = (int)get_angle();
+            // lc_printf("%d,%d,%d,%d,%d,%d,%d,%d\n",P1,P2,P3,P4,P5,P6,P7,P8);   
+            //   ce();
+            // Control_AB();
+            // yaw =yaw +20;
+            // yaw = yaw + 22;
+            // lc_printf("%f  ,", yaw);  
+            // Control_ABCDA();
             // Set_PWM(PWMA, PWMB);
-            // lc_printf("\r\n encoderA_cnt=%d\r\n", encoderA_cnt);
-            // lc_printf("\r\n encoderB_cnt =%d\r\n", encoderB_cnt);
-            // lc_printf("\r\nPWMA =%d,", PWMA);
-            // lc_printf  // lc_printf("temp:%d,%d\n",GET_temp(),t);("\r\nPWMB\n",PWMB);
-              
-                //  lc_printf("%f,%f,%f\n",L.Kp,L.Ki,L.ErrorInt);
-              //  lc_printf("%.2f,%.2f,%.2f,%.2f,%.2f,%.2f,%d,%d\n",L.target,L.Actual,L.out,R.target,R.Actual,R.out,get_encoder_countL(),get_encoder_countR());
-            //   lc_printf("%.2f,%.2f,%.2f\n",Target,Actual,Out);
-           //  lc_printf("%d,%d,%d,%d,%d\n",data[0],data[1],data[2],data[3],data[4]);
-            //  lc_printf("%d,%d\n",PWMA,PWMB);
-            //  delay_ms(200);
-                 
+            if(flag_en)         //使能控制开启
+            {
+                Follow_Route(); //路径控制总函数函数
+                // /* LED闪烁 */
+                LED_Sound();
+            }
+            
            
-    
-            //   delay_ms(500);
-        // delay_ms(20);//根据设置的采样率，不可设置延时过大,1);//6*8 “ABC”   
-        // OLED_ShowString(0,0,"track",8,0);
-  //  OLED_ShowString(0,0,"ABC",8,1);//6*8 “ABC”
-        // OLED_ShowString(0,12,"speedB:",12,1);//6*8 “ABC”   
-        // OLED_ShowNum(0,16,R2,4,12,1);//6*12 “ABC”
-        // OLED_ShowNum(40,12,PWMB,4,12,1);//6*12 “ABC”
-        // OLED_Refresh();
+
     }
 }
 
@@ -162,25 +267,55 @@ int main(void)
             {
 
             cnt = 0;
-            encoder_update();
-            updata();  
-            
-            mode_chack();        
-           
-                   //速度环
-         if( motor_mode == MOTOR_SPEED )
-         {
-            
-            PWMA = PId_calc(&R,get_encoder_countR());
-            PWMB = PId_calc(&L,get_encoder_countL());  
-            Set_PWM(PWMA,PWMB);
-         }
-        if(motor_mode == MOTOR_XUNJI)
-        { 
+            // encoder_update(); 
           
-            //  DL_GPIO_setPins(GPIOB, MOTOR_STBY_PIN);
-             xunji();
-        }
+            // Read_Encoder();
+              if(flag == 0 || flag_en == 0 || mode == 0)      Set_PWM(0,0);
+             else if(flag_en)                                Control();
+            // updata();  
+            
+        //    if(timebegin==1)
+        //     {
+        //         if (timenum==5)
+        //         {
+        //             whiteflag=1;
+        //             timebegin=0;
+        //             timenum=0;
+        //         }
+        //         timenum++;
+
+        //     }
+            
+        //         if (ledbegin==1)
+        //     {
+        //         ledflag=1;
+        //         if (lednum==10)
+        //         {
+        //             ledflag=0;
+        //             ledbegin=0;
+        //             lednum=0;
+        //         }
+        //         lednum++;
+        //     }
+
+
+
+            // mode_chack();        
+           
+        //            //速度环
+        //  if( motor_mode == MOTOR_SPEED )
+        //  {
+            
+        //     // PWMA = PId_calc(&R,get_encoder_countR());
+        //     // PWMB = PId_calc(&L,get_encoder_countL());  
+        //     Set_PWM(PWMA,PWMB);
+        //  }
+        // if(motor_mode == MOTOR_XUNJI)
+        // { 
+          
+        //     //  DL_GPIO_setPins(GPIOB, MOTOR_STBY_PIN);
+        // //      xunji();
+        // }
             }
             break;
             }
@@ -189,3 +324,19 @@ int main(void)
     }
    
  }
+
+void LED_Sound(void)
+{
+    if(flag_LED)
+    {
+        LED_High;
+        BEEP();
+        LED_CNT  = LED_CNT + 1;
+        if(LED_CNT >= 1) 
+        {
+            LED_Low;
+            LED_CNT = 0;
+            flag_LED = 0;
+        }
+    }
+}

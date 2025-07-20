@@ -14,13 +14,14 @@ float kp,ki,kd;
 int error,last_error;
 int integral,output;
 float time;
-
 }track;
 
 extern int data[5],cflag,q,error;
+extern track x;
  void updata();
  void xunji();
   void mode_chack();
 float PID_UPdate(track *track1,float error,float time);
+void PId_Init_tack(track *track2,float kp,float ki,float kd);
     int Get_Error() ;
 #endif
